@@ -1,5 +1,3 @@
-export const runtime = 'edge'
-
 import { type NextRequest } from 'next/server'
 
 const BACKEND_URL = process.env.BACKEND_URL
