@@ -2,6 +2,9 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "frontend",
   "main": ".open-next/worker.js",
+  "build": {
+    "command": "npm run build"
+  },
   "compatibility_date": "2026-06-10",
   "observability": {
     "enabled": true
