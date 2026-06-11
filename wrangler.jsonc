@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "frontend",
+  "name": "project-frontend",
   "main": ".open-next/worker.js",
   "build": {
     "command": "npm run build:cf"
