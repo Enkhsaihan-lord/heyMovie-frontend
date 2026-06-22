@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
-import { useSignIn } from "@clerk/nextjs";
-
+import { useSignIn, useClerk } from "@clerk/nextjs";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+
 export default function SignInPage() {
   const { signIn, fetchStatus } = useSignIn();
+  const { setActive } = useClerk();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,133 +16,96 @@ export default function SignInPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (fetchStatus === "fetching") return;
+    if (fetchStatus === "fetching" || !signIn) return;
     setError("");
     setLoading(true);
     try {
-      const { error: createError } = await signIn.create({ identifier: email, password });
-      if (createError) {
-        setError(createError.message ?? "Серверийн алдаа гарлаа");
+      const { error } = await signIn.create({ identifier: email, password });
+      if (error) {
+        setError(error.message);
         return;
       }
       if (signIn.status === "complete") {
-        await signIn.finalize();
+        await setActive({ session: signIn.createdSessionId });
         router.push("/");
       } else {
         setError("Нэвтрэх явц дуусаагүй байна");
       }
+    } catch (err: unknown) {
+      const msg =
+        err && typeof err === "object" && "errors" in err
+          ? (err as { errors: { message: string }[] }).errors[0]?.message
+          : "Серверийн алдаа гарлаа";
+      setError(msg ?? "Серверийн алдаа гарлаа");
     } finally {
       setLoading(false);
     }
   };
+
   return (
-    <div className="relative z-10 flex min-h-screen items-center justify-center p-8 bg-black">
-      <main className="w-full max-w-[380px] flex flex-col gap-16 md:gap-24">
-        <header className="flex flex-col items-center text-center gap-12">
-          <div className="text-white/60 font-sans text-sm tracking-[0.4em] uppercase">
-            PROSCENIUM
-          </div>
-          <div className="space-y-4">
-            <h1 className="font-sans font-bold text-3xl text-white tracking-tight">
-              Sign In
-            </h1>
-            <p className="font-sans text-white/50 text-sm max-w-[280px] mx-auto leading-relaxed">
-              Return to your collection and continue the narrative.
-            </p>
-          </div>
-        </header>
-
-        {/* Form Section */}
-        <section className="flex flex-col gap-10">
-          <form className="flex flex-col gap-8" onSubmit={handleSubmit}>
-            {/* Email Field */}
-            <div className="space-y-1">
-              <label
-                className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40"
-                htmlFor="email"
-              >
-                Email
-              </label>
-              <input
-                className="w-full bg-transparent border-b border-white/10 focus:border-white px-0 py-3 text-white focus:ring-0 transition-all placeholder:text-white/10 rounded-none outline-none"
-                id="email"
-                placeholder="name@domain.com"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex justify-between items-end">
-                <label
-                  className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40"
-                  htmlFor="password"
-                >
-                  Password
-                </label>
-              </div>
-              <input
-                className="w-full bg-transparent border-b border-white/10 focus:border-white px-0 py-3 text-white focus:ring-0 transition-all placeholder:text-white/10 rounded-none outline-none"
-                id="password"
-                placeholder="••••••••"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-
-            {error && <p className="text-sm text-red-400">{error}</p>}
-
-            {/* CTA Button */}
-            <button
-              className="w-full bg-white py-4 text-black font-bold uppercase tracking-[0.3em] text-[11px] mt-4 hover:bg-white/90 active:scale-[0.99] transition-all disabled:opacity-50"
-              type="submit"
-              disabled={loading}
-            >
-              {loading ? "Entering..." : "Enter Vault"}
-            </button>
-          </form>
-
-          <div className="flex flex-col items-center gap-6">
-            <button className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
-              Forgot password?
-            </button>
-
-            <div className="flex items-center gap-4 w-full opacity-20">
-              <div className="flex-grow border-t border-white"></div>
-              <span className="text-[9px] uppercase tracking-widest font-bold text-white">
-                OR
-              </span>
-              <div className="flex-grow border-t border-white"></div>
-            </div>
-
-            <div className="flex gap-12">
-              <button className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
-                Google
-              </button>
-              <button className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 hover:text-white transition-colors">
-                Apple
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Footer Link */}
-        <footer className="text-center pt-8">
-          <p className="text-xs text-white/40 tracking-wide">
-            New to the premiere?
-            <a
-              className="text-white font-bold hover:opacity-70 transition-opacity ml-2 border-b border-white/30"
-              href="#"
-            >
-              Create an account
-            </a>
+    <main className="flex min-h-[calc(100vh-3.5rem)] items-center justify-center px-4">
+      <div className="w-full max-w-sm">
+        <div className="mb-8 text-center">
+          <h1 className="text-2xl font-bold text-white">Нэвтрэх</h1>
+          <p className="mt-2 text-sm text-zinc-500">
+            Акаунтдаа нэвтэрч үргэлжлүүлнэ үү
           </p>
-        </footer>
-      </main>
-    </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Имэйл
+            </label>
+            <input
+              type="email"
+              required
+              placeholder="name@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-zinc-600"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium uppercase tracking-wider text-zinc-500">
+              Нууц үг
+            </label>
+            <input
+              type="password"
+              required
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-600 outline-none transition focus:border-zinc-600"
+            />
+          </div>
+
+          {error && (
+            <p className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-400">
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-lg bg-red-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-500 disabled:opacity-50"
+          >
+            {loading ? "Нэвтэрч байна..." : "Нэвтрэх"}
+          </button>
+        </form>
+
+        <p className="mt-6 text-center text-sm text-zinc-500">
+          Акаунт байхгүй юу?{" "}
+          <Link
+            href="/signUp"
+            className="font-medium text-white transition-colors hover:text-zinc-300"
+          >
+            Бүртгүүлэх
+          </Link>
+        </p>
+      </div>
+    </main>
   );
 }
